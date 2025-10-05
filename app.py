@@ -74,30 +74,46 @@ def validate_phone_number(phone, country_code='+91'):
 # ---------------------------
 
 EXCEL_PATH = "cropresults_with_state (1).xlsx"
-df = pd.read_excel(EXCEL_PATH)
-df.columns = [col.strip() for col in df.columns]
-df[['STATE', 'DISTRICT NAME', 'BLOCK NAME', 'VILLAGE NAME']] = (
-    df[['STATE', 'DISTRICT NAME', 'BLOCK NAME', 'VILLAGE NAME']]
-    .ffill()
-    .bfill()
-    .astype(str)
-)
+try:
+    print("📊 Loading Excel data...")
+    df = pd.read_excel(EXCEL_PATH)
+    df.columns = [col.strip() for col in df.columns]
+    df[['STATE', 'DISTRICT NAME', 'BLOCK NAME', 'VILLAGE NAME']] = (
+        df[['STATE', 'DISTRICT NAME', 'BLOCK NAME', 'VILLAGE NAME']]
+        .ffill()
+        .bfill()
+        .astype(str)
+    )
+    print("✅ Excel data loaded successfully!")
+except Exception as e:
+    print(f"⚠️ Warning: Could not load Excel file: {e}")
+    # Create empty DataFrame as fallback
+    df = pd.DataFrame()
+    print("🔄 Running with limited functionality...")
 
 # ---------------------------
 # Build Dropdown Hierarchy for Site
 # ---------------------------
 
 dropdown_data = {}
-for _, row in df.iterrows():
-    state = row['STATE']
-    district = row['DISTRICT NAME']
-    block = row['BLOCK NAME']
-    village = row['VILLAGE NAME']
-    dropdown_data.setdefault(state, {})
-    dropdown_data[state].setdefault(district, {})
-    dropdown_data[state][district].setdefault(block, [])
-    if village not in dropdown_data[state][district][block]:
-        dropdown_data[state][district][block].append(village)
+if not df.empty:
+    try:
+        for _, row in df.iterrows():
+            state = row['STATE']
+            district = row['DISTRICT NAME']
+            block = row['BLOCK NAME']
+            village = row['VILLAGE NAME']
+            dropdown_data.setdefault(state, {})
+            dropdown_data[state].setdefault(district, {})
+            dropdown_data[state][district].setdefault(block, [])
+            if village not in dropdown_data[state][district][block]:
+                dropdown_data[state][district][block].append(village)
+        print("🗺️ Location hierarchy built successfully!")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not build location hierarchy: {e}")
+        dropdown_data = {}
+else:
+    print("⚠️ No Excel data available - location features will be limited")
 
 # ---------------------------
 # OpenAI Chat Completion Calls with Fallback
